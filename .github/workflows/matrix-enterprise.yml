@@ -1,0 +1,33 @@
+name: Laboratorio 3 - Matrix Build Enterprise
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+jobs:
+  build-and-test:
+    name: Build (${{ matrix.os }} - Node ${{ matrix.node-version }} - ${{ matrix.mode }})
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false # Permite que si un job falla, los demás continúen corriendo
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node-version: [18, 20]
+        mode: [debug, release]
+
+    steps:
+      - name: Descargar el código del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar el entorno de Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Simular validación del entorno
+        run: |
+          echo "Validando Sistema Operativo: ${{ matrix.os }}"
+          echo "Validando Versión de Node: ${{ matrix.node-version }}"
+          echo "Validando Modo: ${{ matrix.mode }}"
