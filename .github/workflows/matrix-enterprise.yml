@@ -5,17 +5,35 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     name: Build (${{ matrix.os }} - Node ${{ matrix.node-version }} - ${{ matrix.mode }})
     runs-on: ${{ matrix.os }}
     
     strategy:
-      fail-fast: false # Permite que si un job falla, los demás continúen corriendo
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
         node-version: [18, 20]
         mode: [debug, release]
+        exclude:
+          - os: windows-latest
+            node-version: 18
+            mode: debug
+        include:
+          - mode: release
+            deploy-target: "production-server"
+          - mode: debug
+            deploy-target: "staging-server"
+          - os: ubuntu-latest
+            node-version: 22
+            mode: release
+            deploy-target: "experimental-server"
 
     steps:
       - name: Descargar el código del repositorio
@@ -31,3 +49,22 @@ jobs:
           echo "Validando Sistema Operativo: ${{ matrix.os }}"
           echo "Validando Versión de Node: ${{ matrix.node-version }}"
           echo "Validando Modo: ${{ matrix.mode }}"
+          echo "Destino del despliegue (Variable Inyectada): ${{ matrix.deploy-target }}"
+
+      - name: Generar Job Summary Dinámico
+        if: always()
+        run: |
+          echo "## Resumen de Ejecución - Matrix Enterprise" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "### Configuración Ejecutada" >> $GITHUB_STEP_SUMMARY
+          echo "| Parámetro | Valor Asignado |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Sistema Operativo** | \`${{ matrix.os }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Versión de Node** | \`v${{ matrix.node-version }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Modo de Compilación** | \`${{ matrix.mode }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Destino de Despliegue** | \`${{ matrix.deploy-target }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Resultado del Job" >> $GITHUB_STEP_SUMMARY
+          echo "* **Estado:** Finalizado de forma dinámica" >> $GITHUB_STEP_SUMMARY
+          echo "* **Rama Activa:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "* **Tiempo Estimado:** < 1 minuto" >> $GITHUB_STEP_SUMMARY
